@@ -6,9 +6,9 @@ React Native SDK for [Appfastfly](https://appfastfly.com) — mobile deep linkin
 
 | Platform     | Minimum version |
 | ------------ | --------------- |
-| iOS          | 13.4+           |
-| Android      | API 23+ (6.0)   |
-| React Native | 0.71+           |
+| iOS          | 15.0+           |
+| Android      | API 24+ (7.0)   |
+| React Native | 0.78+           |
 
 ## Installation
 

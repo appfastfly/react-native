@@ -14,14 +14,10 @@ Pod::Spec.new do |s|
   s.source_files = "ios/**/*.{h,m,mm,swift}"
   s.swift_version = "5.0"
 
-  s.pod_target_xcconfig = {
-    "DEFINES_MODULE" => "YES",
-    "SWIFT_OBJC_INTERFACE_HEADER_NAME" => "Appfastfly-Swift.h",
-  }
+  install_modules_dependencies(s)
 
-  if defined?(install_modules_dependencies)
-    install_modules_dependencies(s)
-  else
-    s.dependency "React-Core"
-  end
+  s.pod_target_xcconfig = {
+    'DEFINES_MODULE' => 'YES',
+    'SWIFT_OBJC_INTERFACE_HEADER_NAME' => 'Appfastfly-Swift.h'
+  }
 end

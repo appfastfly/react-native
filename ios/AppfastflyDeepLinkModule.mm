@@ -5,7 +5,6 @@
 #import <React/RCTConversions.h>
 #endif
 
-// Swift bridging
 #import "Appfastfly-Swift.h"
 
 // Static reference for forwarding events from AppDelegate
