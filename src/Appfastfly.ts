@@ -57,7 +57,7 @@ function extractShortCode(url: string): string | null {
     // URI scheme: myapp://link?shortCode=abc123
     if (url.includes('://link')) {
       const match = url.match(/[?&]shortCode=([^&]+)/);
-      if (match) return match[1];
+      if (match) return match[1] ?? null;
     }
 
     // Universal Link / App Link: https://domain.com/l/abc123 or https://domain.com/slug/abc123
@@ -65,11 +65,11 @@ function extractShortCode(url: string): string | null {
     const segments = parsed.pathname.split('/').filter(Boolean);
     if (segments.length === 1) {
       // /abc123 (single segment, unlikely but handle)
-      return segments[0];
+      return segments[0] ?? null;
     }
     if (segments.length === 2) {
       // /l/abc123 or /slug/abc123
-      return segments[1];
+      return segments[1] ?? null;
     }
     return null;
   } catch {
@@ -129,7 +129,8 @@ async function resolveDeferred(): Promise<void> {
 
 // --- HTTP helpers ---
 
-async function apiGet(path: string): Promise<any> {
+// Reserved for future use (e.g. analytics, link details)
+async function _apiGet(path: string): Promise<any> {
   const res = await fetch(`${serviceUrl}${path}`, {
     headers: { 'X-API-Key': apiKey },
   });
