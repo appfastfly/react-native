@@ -1,6 +1,6 @@
 #ifdef RCT_NEW_ARCH_ENABLED
 #import <AppfastflyDeepLinkSpec/AppfastflyDeepLinkSpec.h>
-@interface AppfastflyDeepLinkModule : RCTEventEmitter <NativeAppfastflyDeepLinkSpec>
+@interface AppfastflyDeepLinkModule : RCTEventEmitter <NativeDeepLinkSpec>
 #else
 #import <React/RCTBridgeModule.h>
 #import <React/RCTEventEmitter.h>
