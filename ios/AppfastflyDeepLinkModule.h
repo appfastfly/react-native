@@ -1,5 +1,7 @@
 #ifdef RCT_NEW_ARCH_ENABLED
+#if __has_include(<AppfastflyDeepLinkSpec/AppfastflyDeepLinkSpec.h>)
 #import <AppfastflyDeepLinkSpec/AppfastflyDeepLinkSpec.h>
+#endif
 @interface AppfastflyDeepLinkModule : NSObject <NativeAppfastflyDeepLinkSpec>
 #else
 #import <React/RCTBridgeModule.h>
