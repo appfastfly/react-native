@@ -6,7 +6,7 @@
 #endif
 
 // Swift bridging
-#import "appfastfly_react_native-Swift.h"
+#import "Appfastfly-Swift.h"
 
 // Static reference for forwarding events from AppDelegate
 static AppfastflyDeepLinkModule *_sharedInstance = nil;
