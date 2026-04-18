@@ -1,0 +1,68 @@
+{
+  "name": "@appfastfly/react-native",
+  "version": "0.1.0",
+  "description": "Appfastfly React Native SDK - Mobile Deep Linking & Attribution",
+  "main": "lib/commonjs/index",
+  "module": "lib/module/index",
+  "types": "lib/typescript/src/index.d.ts",
+  "react-native": "src/index",
+  "source": "src/index",
+  "files": [
+    "src",
+    "lib",
+    "ios",
+    "android",
+    "*.podspec",
+    "!ios/build",
+    "!android/build",
+    "!**/__tests__"
+  ],
+  "scripts": {
+    "typescript": "tsc --noEmit",
+    "build": "bob build",
+    "lint": "eslint \"src/**/*.{ts,tsx}\""
+  },
+  "keywords": [
+    "react-native",
+    "deep-linking",
+    "deferred-deep-link",
+    "attribution",
+    "appfastfly"
+  ],
+  "repository": "https://github.com/appfastfly/react-native",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*",
+    "@react-native-async-storage/async-storage": ">=1.17.0"
+  },
+  "devDependencies": {
+    "@react-native-async-storage/async-storage": "^2.1.0",
+    "react": "^19.0.0",
+    "react-native": "^0.78.0",
+    "react-native-builder-bob": "^0.35.0",
+    "typescript": "^5.7.0"
+  },
+  "codegenConfig": {
+    "name": "AppfastflyDeepLinkSpec",
+    "type": "modules",
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "com.appfastfly.deeplink"
+    }
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      "commonjs",
+      "module",
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  }
+}
