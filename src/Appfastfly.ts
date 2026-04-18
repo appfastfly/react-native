@@ -130,13 +130,13 @@ async function resolveDeferred(): Promise<void> {
 // --- HTTP helpers ---
 
 // Reserved for future use (e.g. analytics, link details)
-async function _apiGet(path: string): Promise<any> {
-  const res = await fetch(`${serviceUrl}${path}`, {
-    headers: { 'X-API-Key': apiKey },
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
+// async function _apiGet(path: string): Promise<any> {
+//   const res = await fetch(`${serviceUrl}${path}`, {
+//     headers: { 'X-API-Key': apiKey },
+//   });
+//   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+//   return res.json();
+// }
 
 async function apiPost(path: string, body: any): Promise<any> {
   const res = await fetch(`${serviceUrl}${path}`, {
