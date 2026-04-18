@@ -2,14 +2,21 @@
 #import <React/RCTLog.h>
 
 #ifdef RCT_NEW_ARCH_ENABLED
+#import <AppfastflyDeepLinkSpec/AppfastflyDeepLinkSpec.h>
 #import <React/RCTConversions.h>
 #endif
 
-#import "Appfastfly-Swift.h"
+#import "AppfastflyClipboard.h"
+#import "AppfastflyFingerprint.h"
 
 // Static reference for forwarding events from AppDelegate
 static AppfastflyDeepLinkModule *_sharedInstance = nil;
 static NSString *_pendingURL = nil;
+
+#ifdef RCT_NEW_ARCH_ENABLED
+@interface AppfastflyDeepLinkModule () <NativeDeepLinkSpec>
+@end
+#endif
 
 @implementation AppfastflyDeepLinkModule {
   BOOL _hasListeners;

@@ -11,13 +11,11 @@ Pod::Spec.new do |s|
   s.authors      = "Appfastfly"
   s.platforms    = { :ios => "13.4" }
   s.source       = { :git => "#{package["repository"]}.git", :tag => "#{s.version}" }
-  s.source_files = "ios/**/*.{h,m,mm,swift}"
-  s.swift_version = "5.0"
+  s.source_files = "ios/**/*.{h,m,mm}"
 
   install_modules_dependencies(s)
 
   s.pod_target_xcconfig = {
-    'DEFINES_MODULE' => 'YES',
-    'SWIFT_OBJC_INTERFACE_HEADER_NAME' => 'Appfastfly-Swift.h'
+    'DEFINES_MODULE' => 'YES'
   }
 end
