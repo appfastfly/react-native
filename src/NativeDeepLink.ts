@@ -8,19 +8,19 @@ export interface Spec extends TurboModule {
   // Device fingerprinting
   getDeviceFingerprint(): Promise<{
     deviceId: string;
-    advertisingId?: string;
+    advertisingId: string | null;
     brand: string;
     model: string;
     os: string;
     osVersion: string;
-    osBuild?: string;
+    osBuild: string | null;
     screenWidth: number;
     screenHeight: number;
-    screenScale?: number;
-    screenDpi?: number;
+    screenScale: number | null;
+    screenDpi: number | null;
     locale: string;
     language: string;
-    country?: string;
+    country: string | null;
     timezone: string;
     userAgent: string;
     isEmulator: boolean;
@@ -36,8 +36,8 @@ export interface Spec extends TurboModule {
   markInitialized(): void;
 
   // Native cache (UserDefaults / SharedPreferences)
-  getCachedParams(): Promise<Record<string, any> | null>;
-  setCachedParams(params: Record<string, any>): void;
+  getCachedParams(): Promise<Object | null>;
+  setCachedParams(params: Object): void;
 
   // Event emitter
   addListener(eventName: string): void;
