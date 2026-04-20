@@ -34,11 +34,11 @@ RCT_EXPORT_MODULE(AppfastflyDeepLink)
 
     // Read config from Info.plist
     NSDictionary *info = [[NSBundle mainBundle] infoDictionary];
-    _serviceUrl = info[@"AppfastflyServiceUrl"];
+    _serviceUrl = info[@"AppfastflyServiceUrl"] ?: @"https://api.appfastfly.io.vn";
     _apiKey = info[@"AppfastflyApiKey"];
 
-    if (!_serviceUrl || !_apiKey) {
-      RCTLogWarn(@"[Appfastfly] Missing AppfastflyServiceUrl or AppfastflyApiKey in Info.plist");
+    if (!_apiKey) {
+      RCTLogWarn(@"[Appfastfly] Missing AppfastflyApiKey in Info.plist");
     }
 
     // If a Universal Link arrived before the module was ready, emit it now
