@@ -36,9 +36,9 @@ android {
 
   sourceSets {
     main {
-      if (isNewArchitectureEnabled()) {
-        java.srcDirs += ['src/newarch']
-      } else {
+      // New Arch: Codegen plugin auto-adds build/generated/source/codegen/java/
+      // Old Arch: paper dir provides stub NativeAppfastflyDeepLinkSpec
+      if (!isNewArchitectureEnabled()) {
         java.srcDirs += ['src/paper']
       }
     }

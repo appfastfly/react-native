@@ -10,7 +10,7 @@ import org.json.JSONObject
 
 @ReactModule(name = AppfastflyDeepLinkModule.NAME)
 class AppfastflyDeepLinkModule(reactContext: ReactApplicationContext) :
-  ReactContextBaseJavaModule(reactContext),
+  NativeAppfastflyDeepLinkSpec(reactContext),
   ActivityEventListener {
 
   companion object {
