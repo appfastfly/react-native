@@ -1,6 +1,6 @@
 {
   "name": "@appfastfly/react-native",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Appfastfly React Native SDK - Mobile Deep Linking & Attribution",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
@@ -37,13 +37,15 @@
     "prepare": "bob build",
     "typecheck": "tsc",
     "test": "jest",
-    "release": "release-it --only-version",
+    "release": "release-it",
     "lint": "eslint \"**/*.{js,ts,tsx}\""
   },
   "keywords": [
     "react-native",
-    "ios",
-    "android"
+    "deep-linking",
+    "deferred-deep-link",
+    "attribution",
+    "appfastfly"
   ],
   "repository": {
     "type": "git",
@@ -112,11 +114,11 @@
     ]
   },
   "codegenConfig": {
-    "name": "ReactNativeSpec",
+    "name": "AppfastflyDeepLinkSpec",
     "type": "modules",
     "jsSrcsDir": "src",
     "android": {
-      "javaPackageName": "com.appfastfly.reactnative"
+      "javaPackageName": "com.appfastfly.deeplink"
     }
   },
   "jest": {
@@ -134,13 +136,22 @@
   "release-it": {
     "git": {
       "commitMessage": "chore: release ${version}",
-      "tagName": "v${version}"
+      "tagName": "v${version}",
+      "requireCleanWorkingDir": false
     },
     "npm": {
-      "publish": true
+      "publish": true,
+      "publishArgs": [
+        "--access public"
+      ]
     },
     "github": {
       "release": true
+    },
+    "hooks": {
+      "before:init": [
+        "yarn prepare"
+      ]
     },
     "plugins": {
       "@release-it/conventional-changelog": {

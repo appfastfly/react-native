@@ -1,16 +1,16 @@
-package com.appfastfly.reactnative
+package com.appfastfly.deeplink
 
 import com.facebook.react.BaseReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.module.model.ReactModuleInfo
 import com.facebook.react.module.model.ReactModuleInfoProvider
-import java.util.HashMap
 
-class ReactNativePackage : BaseReactPackage() {
+class AppfastflyDeepLinkPackage : BaseReactPackage() {
+
   override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? {
-    return if (name == ReactNativeModule.NAME) {
-      ReactNativeModule(reactContext)
+    return if (name == NativeAppfastflyDeepLinkSpec.NAME) {
+      AppfastflyDeepLinkModule(reactContext)
     } else {
       null
     }
@@ -18,9 +18,9 @@ class ReactNativePackage : BaseReactPackage() {
 
   override fun getReactModuleInfoProvider() = ReactModuleInfoProvider {
     mapOf(
-      ReactNativeModule.NAME to ReactModuleInfo(
-        name = ReactNativeModule.NAME,
-        className = ReactNativeModule.NAME,
+      NativeAppfastflyDeepLinkSpec.NAME to ReactModuleInfo(
+        name = NativeAppfastflyDeepLinkSpec.NAME,
+        className = NativeAppfastflyDeepLinkSpec.NAME,
         canOverrideExistingModule = false,
         needsEagerInit = false,
         isCxxModule = false,

@@ -33,7 +33,7 @@ apply plugin: "kotlin-android"
 apply plugin: "com.facebook.react"
 
 android {
-  namespace "com.appfastfly.reactnative"
+  namespace "com.appfastfly.deeplink"
 
   compileSdkVersion getExtOrDefault("compileSdkVersion")
 
@@ -64,4 +64,5 @@ android {
 
 dependencies {
   implementation "com.facebook.react:react-android"
+  implementation "com.android.installreferrer:installreferrer:2.2"
 }
