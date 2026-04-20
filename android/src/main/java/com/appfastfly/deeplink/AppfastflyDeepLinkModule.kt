@@ -76,7 +76,7 @@ class AppfastflyDeepLinkModule(reactContext: ReactApplicationContext) :
     }
 
     // Check current activity intent for cold start
-    currentActivity?.intent?.data?.toString()?.let { url ->
+    reactApplicationContext.currentActivity?.intent?.data?.toString()?.let { url ->
       emitDeepLinkUrl(url)
     }
   }
@@ -88,13 +88,13 @@ class AppfastflyDeepLinkModule(reactContext: ReactApplicationContext) :
   }
 
   // ActivityEventListener — handles warm start (app already running)
-  override fun onNewIntent(intent: Intent?) {
-    val url = intent?.data?.toString() ?: return
+  override fun onNewIntent(intent: Intent) {
+    val url = intent.data?.toString() ?: return
     emitDeepLinkUrl(url)
   }
 
   override fun onActivityResult(
-    activity: Activity?,
+    activity: Activity,
     requestCode: Int,
     resultCode: Int,
     data: Intent?

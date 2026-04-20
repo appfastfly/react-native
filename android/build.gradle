@@ -6,6 +6,14 @@ buildscript {
 
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
+apply plugin: 'com.facebook.react'
+
+react {
+  // Must match `codegenConfig.name` in package.json
+  libraryName = "AppfastflyDeepLinkSpec"
+  // Must match `codegenConfig.android.javaPackageName` in package.json
+  codegenJavaPackageName = "com.appfastfly.deeplink"
+}
 
 android {
   namespace "com.appfastfly.deeplink"
