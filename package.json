@@ -144,7 +144,7 @@
     },
     "hooks": {
       "after:bump": "yarn prepare",
-      "after:git:release": "npm publish --access public"
+      "after:git:release": "npm publish --access public --provenance"
     },
     "github": {
       "release": true

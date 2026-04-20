@@ -1,7 +1,10 @@
-name: Publish to npm
+name: CI
 
 on:
   push:
+    branches:
+      - main
+  pull_request:
     branches:
       - main
   workflow_dispatch:
@@ -21,11 +24,12 @@ permissions:
   id-token: write
 
 concurrency:
-  group: publish
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
@@ -53,7 +57,7 @@ jobs:
         run: yarn prepare
 
   publish:
-    needs: quality
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     steps:

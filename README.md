@@ -3,7 +3,7 @@
 React Native SDK for [Appfastfly](https://appfastfly.com) — mobile deep linking & attribution.
 
 [![npm version](https://img.shields.io/npm/v/@appfastfly/react-native)](https://www.npmjs.com/package/@appfastfly/react-native)
-[![CI](https://github.com/appfastfly/react-native/actions/workflows/ci.yml/badge.svg)](https://github.com/appfastfly/react-native/actions/workflows/ci.yml)
+[![CI](https://github.com/appfastfly/react-native/actions/workflows/publish.yml/badge.svg)](https://github.com/appfastfly/react-native/actions/workflows/publish.yml)
 [![license](https://img.shields.io/npm/l/@appfastfly/react-native)](LICENSE)
 
 ## Features
