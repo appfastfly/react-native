@@ -1,6 +1,6 @@
 # @appfastfly/react-native
 
-React Native SDK for [Appfastfly](https://appfastfly.com) — mobile deep linking & attribution.
+React Native SDK for [Appfastfly](https://appfastfly.io.vn) — mobile deep linking & attribution.
 
 [![npm version](https://img.shields.io/npm/v/@appfastfly/react-native)](https://www.npmjs.com/package/@appfastfly/react-native)
 [![CI](https://github.com/appfastfly/react-native/actions/workflows/publish.yml/badge.svg)](https://github.com/appfastfly/react-native/actions/workflows/publish.yml)
@@ -76,7 +76,7 @@ Optionally override the service URL:
     android:value="https://your-custom-api.com" />
 ```
 
-> Get your API key from the [Appfastfly Dashboard](https://appfastfly.com/dashboard/integration).
+> Get your API key from the [Appfastfly Dashboard](https://appfastfly.io.vn/dashboard/integration).
 
 ---
 
