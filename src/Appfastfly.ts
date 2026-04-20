@@ -1,5 +1,5 @@
 import { Linking, NativeEventEmitter, Platform } from 'react-native';
-import NativeDeepLink from './NativeDeepLink';
+import { getNativeModule } from './NativeDeepLink';
 import type {
   DeepLinkEvent,
   CreateLinkParams,
@@ -17,12 +17,12 @@ let emitter: NativeEventEmitter | null = null;
 
 function emit(event: DeepLinkEvent) {
   latestParams = event.payload;
-  NativeDeepLink.setCachedParams(event.payload);
+  getNativeModule().setCachedParams(event.payload);
   listeners.forEach((fn) => fn(event));
 }
 
 async function loadConfig() {
-  const config = await NativeDeepLink.getConfig();
+  const config = await getNativeModule().getConfig();
   serviceUrl = config.serviceUrl;
   apiKey = config.apiKey;
 }
@@ -79,17 +79,17 @@ function extractShortCode(url: string): string | null {
 
 async function resolveDeferred(): Promise<void> {
   try {
-    const fingerprint = await NativeDeepLink.getDeviceFingerprint();
+    const fingerprint = await getNativeModule().getDeviceFingerprint();
 
     let clipboardToken: string | null = null;
     try {
-      clipboardToken = await NativeDeepLink.getClipboardToken('aff:');
-      if (clipboardToken) NativeDeepLink.clearClipboard();
+      clipboardToken = await getNativeModule().getClipboardToken('aff:');
+      if (clipboardToken) getNativeModule().clearClipboard();
     } catch {}
 
     let installReferrer: string | null = null;
     if (Platform.OS === 'android') {
-      try { installReferrer = await NativeDeepLink.getInstallReferrer(); } catch {}
+      try { installReferrer = await getNativeModule().getInstallReferrer(); } catch {}
     }
 
     const result: ResolveResult = await apiPost('/api/v1/resolve', {
@@ -177,7 +177,7 @@ async function init(): Promise<void> {
   await loadConfig();
 
   // Setup native event listener — receives {url: "..."} from Universal Link / App Link
-  emitter = new NativeEventEmitter(NativeDeepLink as any);
+  emitter = new NativeEventEmitter(getNativeModule() as any);
   emitter.addListener('onDeepLink', (event: { url?: string }) => {
     if (event.url) {
       handleDirectLink(event.url);
@@ -197,13 +197,13 @@ async function init(): Promise<void> {
   }
 
   // First launch → deferred deep link
-  const isFirst = await NativeDeepLink.isFirstLaunch();
+  const isFirst = await getNativeModule().isFirstLaunch();
   if (isFirst) {
     await resolveDeferred();
-    NativeDeepLink.markInitialized();
+    getNativeModule().markInitialized();
   } else {
     // Load cached
-    latestParams = await NativeDeepLink.getCachedParams();
+    latestParams = await getNativeModule().getCachedParams();
   }
 }
 
@@ -254,7 +254,7 @@ async function createLink(params: CreateLinkParams): Promise<{ shortCode: string
  * Associate the current device with a user ID.
  */
 async function setIdentity(userId: string): Promise<void> {
-  const fingerprint = await NativeDeepLink.getDeviceFingerprint();
+  const fingerprint = await getNativeModule().getDeviceFingerprint();
   await apiPost('/api/v1/identity', {
     deviceId: fingerprint.deviceId,
     platform: Platform.OS,
@@ -266,7 +266,7 @@ async function setIdentity(userId: string): Promise<void> {
  * Remove the current device-user association.
  */
 async function logout(): Promise<void> {
-  const fingerprint = await NativeDeepLink.getDeviceFingerprint();
+  const fingerprint = await getNativeModule().getDeviceFingerprint();
   await apiDelete('/api/v1/identity', {
     deviceId: fingerprint.deviceId,
     platform: Platform.OS,

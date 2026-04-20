@@ -4,15 +4,24 @@ buildscript {
   }
 }
 
+def isNewArchitectureEnabled() {
+  return project.hasProperty("newArchEnabled") && project.newArchEnabled == "true"
+}
+
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: 'com.facebook.react'
 
-react {
-  // Must match `codegenConfig.name` in package.json
-  libraryName = "AppfastflyDeepLinkSpec"
-  // Must match `codegenConfig.android.javaPackageName` in package.json
-  codegenJavaPackageName = "com.appfastfly.deeplink"
+if (isNewArchitectureEnabled()) {
+  apply plugin: 'com.facebook.react'
+}
+
+if (isNewArchitectureEnabled()) {
+  react {
+    // Must match `codegenConfig.name` in package.json
+    libraryName = "AppfastflyDeepLinkSpec"
+    // Must match `codegenConfig.android.javaPackageName` in package.json
+    codegenJavaPackageName = "com.appfastfly.deeplink"
+  }
 }
 
 android {
@@ -50,6 +59,4 @@ dependencies {
   implementation "com.android.installreferrer:installreferrer:2.2"
 }
 
-def isNewArchitectureEnabled() {
-  return project.hasProperty("newArchEnabled") && project.newArchEnabled == "true"
-}
+

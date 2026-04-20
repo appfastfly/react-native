@@ -44,6 +44,17 @@ export interface Spec extends TurboModule {
   removeListeners(count: number): void;
 }
 
-export default TurboModuleRegistry.getEnforcing<Spec>(
-  'AppfastflyDeepLink',
-);
+const NativeDeepLink = TurboModuleRegistry.get<Spec>('AppfastflyDeepLink');
+
+export function getNativeModule(): Spec {
+  if (!NativeDeepLink) {
+    throw new Error(
+      '[Appfastfly] Native module not found. ' +
+        'Make sure you linked the library and rebuilt the app. ' +
+        'On Android ensure the package is registered in MainApplication.'
+    );
+  }
+  return NativeDeepLink;
+}
+
+export default NativeDeepLink;
