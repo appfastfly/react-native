@@ -140,18 +140,14 @@
       "requireCleanWorkingDir": false
     },
     "npm": {
-      "publish": true,
-      "publishArgs": [
-        "--access public"
-      ]
+      "publish": false
+    },
+    "hooks": {
+      "after:bump": "yarn prepare",
+      "after:git:release": "npm publish --access public"
     },
     "github": {
       "release": true
-    },
-    "hooks": {
-      "before:init": [
-        "yarn prepare"
-      ]
     },
     "plugins": {
       "@release-it/conventional-changelog": {
