@@ -39,6 +39,12 @@ export interface Spec extends TurboModule {
   getCachedParams(): Promise<Object | null>;
   setCachedParams(params: Object): void;
 
+  // Native networking — API calls run entirely on native layer
+  initSession(): Promise<Object | null>;
+  resolveLink(shortCode: string): Promise<Object | null>;
+  setUserIdentity(userId: string): Promise<void>;
+  clearUserIdentity(): Promise<void>;
+
   // Event emitter
   addListener(eventName: string): void;
   removeListeners(count: number): void;
