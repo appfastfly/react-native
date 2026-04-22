@@ -7,33 +7,44 @@ import com.facebook.react.bridge.Promise
 
 class AppfastflyInstallReferrer(private val context: Context) {
 
-  fun get(promise: Promise) {
-    val client = InstallReferrerClient.newBuilder(context).build()
+  fun interface ReferrerCallback {
+    fun onResult(referrer: String?)
+  }
 
-    client.startConnection(object : InstallReferrerStateListener {
-      override fun onInstallReferrerSetupFinished(responseCode: Int) {
-        when (responseCode) {
-          InstallReferrerClient.InstallReferrerResponse.OK -> {
-            try {
-              val response = client.installReferrer
-              val referrer = response.installReferrer
-              promise.resolve(referrer)
-            } catch (e: Exception) {
-              promise.resolve(null)
-            } finally {
-              client.endConnection()
+  fun get(promise: Promise) {
+    get { referrer -> promise.resolve(referrer) }
+  }
+
+  fun get(callback: ReferrerCallback) {
+    try {
+      val client = InstallReferrerClient.newBuilder(context).build()
+
+      client.startConnection(object : InstallReferrerStateListener {
+        override fun onInstallReferrerSetupFinished(responseCode: Int) {
+          when (responseCode) {
+            InstallReferrerClient.InstallReferrerResponse.OK -> {
+              try {
+                val referrer = client.installReferrer.installReferrer
+                callback.onResult(referrer)
+              } catch (_: Exception) {
+                callback.onResult(null)
+              } finally {
+                try { client.endConnection() } catch (_: Exception) {}
+              }
+            }
+            else -> {
+              callback.onResult(null)
+              try { client.endConnection() } catch (_: Exception) {}
             }
           }
-          else -> {
-            promise.resolve(null)
-            client.endConnection()
-          }
         }
-      }
 
-      override fun onInstallReferrerServiceDisconnected() {
-        promise.resolve(null)
-      }
-    })
+        override fun onInstallReferrerServiceDisconnected() {
+          callback.onResult(null)
+        }
+      })
+    } catch (_: Exception) {
+      callback.onResult(null)
+    }
   }
 }

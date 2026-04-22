@@ -25,7 +25,6 @@ async function handleDirectLink(url: string): Promise<void> {
     const shortCode = extractShortCode(url);
     if (!shortCode) return;
 
-    // Resolve payload via native networking — never visible in JS debugger
     const result: any = await getNativeModule().resolveLink(shortCode);
 
     if (result?.payload) {
@@ -38,19 +37,17 @@ async function handleDirectLink(url: string): Promise<void> {
       });
     }
   } catch {
-    // Silently ignore - link may be invalid or network error
+    // Silently ignore
   }
 }
 
 function extractShortCode(url: string): string | null {
   try {
-    // URI scheme: myapp://link?shortCode=abc123
     if (url.includes('://link')) {
       const match = url.match(/[?&]shortCode=([^&]+)/);
       if (match) return match[1] ?? null;
     }
 
-    // Universal Link / App Link: https://domain.com/l/abc123 or https://domain.com/slug/abc123
     const parsed = new URL(url);
     const segments = parsed.pathname.split('/').filter(Boolean);
     if (segments.length === 1) {
@@ -72,14 +69,12 @@ function extractShortCode(url: string): string | null {
 /**
  * Initialize the SDK. Call once at app startup (e.g. in your root component).
  * Config is read from native (Info.plist / AndroidManifest).
- * All API calls run on native layer — invisible to JS debugger.
  */
 async function init(): Promise<void> {
   if (initialized) return;
   initialized = true;
 
   try {
-    // Setup native event listener — receives {url: "..."} from Universal Link / App Link
     emitter = new NativeEventEmitter(getNativeModule() as any);
     emitter.addListener('onDeepLink', (event: { url?: string }) => {
       if (event.url) {
@@ -87,7 +82,6 @@ async function init(): Promise<void> {
       }
     });
 
-    // Listen for incoming URLs via Linking (URI scheme, warm start)
     Linking.addEventListener('url', ({ url }) => {
       handleDirectLink(url);
     });
@@ -99,7 +93,7 @@ async function init(): Promise<void> {
       return;
     }
 
-    // First launch → deferred deep link via native networking
+    // Deferred deep link on first launch
     const isFirst = await getNativeModule().isFirstLaunch();
     if (isFirst) {
       try {
@@ -114,11 +108,10 @@ async function init(): Promise<void> {
           });
         }
       } catch {
-        // Deferred resolve failed — silently ignore, app continues normally
+        // Deferred resolve failed — app continues normally
       }
       getNativeModule().markInitialized();
     } else {
-      // Load cached params from previous session
       try {
         latestParams = (await getNativeModule().getCachedParams()) as Record<
           string,
@@ -127,7 +120,7 @@ async function init(): Promise<void> {
       } catch {}
     }
   } catch {
-    // SDK initialization failed — silently ignore, app must not crash
+    // SDK init failed — app continues normally
   }
 }
 
@@ -139,7 +132,6 @@ async function init(): Promise<void> {
 function subscribe(listener: DeepLinkListener): () => void {
   listeners.add(listener);
 
-  // If we already have params, fire immediately
   if (latestParams) {
     try {
       listener({
@@ -170,26 +162,20 @@ function getFirstParams(): Record<string, any> | null {
 
 /**
  * Associate the current device with a user ID.
- * Runs via native networking.
  */
 async function setIdentity(userId: string): Promise<void> {
   try {
     await getNativeModule().setUserIdentity(userId);
-  } catch {
-    // Identity call failed — silently ignore
-  }
+  } catch {}
 }
 
 /**
  * Remove the current device-user association.
- * Runs via native networking.
  */
 async function logout(): Promise<void> {
   try {
     await getNativeModule().clearUserIdentity();
-  } catch {
-    // Logout call failed — silently ignore
-  }
+  } catch {}
 }
 
 export const Appfastfly = {
