@@ -1,6 +1,6 @@
 {
   "name": "@appfastfly/react-native",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Appfastfly React Native SDK - Mobile Deep Linking & Attribution",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
