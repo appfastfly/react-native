@@ -34,6 +34,7 @@ class AppfastflyDeepLinkModule(reactContext: ReactApplicationContext) :
 
   private var hasListeners = false
   private var cachedEvent: WritableMap? = null
+  private var apiClient: AppfastflyApiClient? = null
 
   private val serviceUrl: String by lazy {
     getMetaData("com.appfastfly.SERVICE_URL") ?: "https://api.appfastfly.io.vn"
@@ -48,6 +49,13 @@ class AppfastflyDeepLinkModule(reactContext: ReactApplicationContext) :
     instance = this
     reactApplicationContext.addActivityEventListener(this)
 
+    // Initialize native HTTP client
+    try {
+      apiClient = AppfastflyApiClient(serviceUrl, apiKey)
+    } catch (_: Exception) {
+      android.util.Log.w("Appfastfly", "Failed to initialize API client")
+    }
+
     if (serviceUrl.isEmpty() || apiKey.isEmpty()) {
       android.util.Log.w("Appfastfly", "Missing com.appfastfly.SERVICE_URL or com.appfastfly.API_KEY in AndroidManifest.xml")
     }
@@ -57,20 +65,30 @@ class AppfastflyDeepLinkModule(reactContext: ReactApplicationContext) :
       pendingUrl = null
     }
 
-    reactApplicationContext.currentActivity?.intent?.data?.toString()?.let { url ->
-      emitDeepLinkUrl(url)
+    try {
+      reactApplicationContext.currentActivity?.intent?.data?.toString()?.let { url ->
+        emitDeepLinkUrl(url)
+      }
+    } catch (_: Exception) {
+      // Silently ignore
     }
   }
 
   override fun invalidate() {
-    reactApplicationContext.removeActivityEventListener(this)
+    try {
+      reactApplicationContext.removeActivityEventListener(this)
+    } catch (_: Exception) {}
     instance = null
     super.invalidate()
   }
 
   override fun onNewIntent(intent: Intent) {
-    val url = intent.data?.toString() ?: return
-    emitDeepLinkUrl(url)
+    try {
+      val url = intent.data?.toString() ?: return
+      emitDeepLinkUrl(url)
+    } catch (_: Exception) {
+      // Silently ignore
+    }
   }
 
   override fun onActivityResult(
@@ -81,19 +99,30 @@ class AppfastflyDeepLinkModule(reactContext: ReactApplicationContext) :
   ) {}
 
   private fun emitDeepLinkUrl(url: String) {
-    val event = Arguments.createMap().apply {
-      putString("url", url)
+    try {
+      val event = Arguments.createMap().apply {
+        putString("url", url)
+      }
+      sendEvent("onDeepLink", event)
+    } catch (_: Exception) {
+      // Silently ignore
     }
-    sendEvent("onDeepLink", event)
   }
 
-  // --- Spec methods ---
+  // --- Existing Spec methods ---
 
   override fun getConfig(promise: Promise) {
-    val map = Arguments.createMap()
-    map.putString("serviceUrl", serviceUrl)
-    map.putString("apiKey", apiKey)
-    promise.resolve(map)
+    try {
+      val map = Arguments.createMap()
+      map.putString("serviceUrl", serviceUrl)
+      map.putString("apiKey", apiKey)
+      promise.resolve(map)
+    } catch (_: Exception) {
+      val map = Arguments.createMap()
+      map.putString("serviceUrl", "")
+      map.putString("apiKey", "")
+      promise.resolve(map)
+    }
   }
 
   override fun getDeviceFingerprint(promise: Promise) {
@@ -101,8 +130,8 @@ class AppfastflyDeepLinkModule(reactContext: ReactApplicationContext) :
       val fingerprint = AppfastflyFingerprint(reactApplicationContext)
       val result = fingerprint.collect()
       promise.resolve(result)
-    } catch (e: Exception) {
-      promise.reject("fingerprint_error", e.message, e)
+    } catch (_: Exception) {
+      promise.resolve(Arguments.createMap())
     }
   }
 
@@ -111,56 +140,235 @@ class AppfastflyDeepLinkModule(reactContext: ReactApplicationContext) :
       val clipboard = AppfastflyClipboard(reactApplicationContext)
       val token = clipboard.getToken(prefix)
       promise.resolve(token)
-    } catch (e: Exception) {
-      promise.reject("clipboard_error", e.message, e)
+    } catch (_: Exception) {
+      promise.resolve(null)
     }
   }
 
   override fun clearClipboard() {
-    val clipboard = AppfastflyClipboard(reactApplicationContext)
-    clipboard.clear()
+    try {
+      val clipboard = AppfastflyClipboard(reactApplicationContext)
+      clipboard.clear()
+    } catch (_: Exception) {
+      // Silently ignore
+    }
   }
 
   override fun getInstallReferrer(promise: Promise) {
     try {
       val referrer = AppfastflyInstallReferrer(reactApplicationContext)
       referrer.get(promise)
-    } catch (e: Exception) {
-      promise.reject("referrer_error", e.message, e)
+    } catch (_: Exception) {
+      promise.resolve(null)
     }
   }
 
   override fun isFirstLaunch(promise: Promise) {
-    val prefs = reactApplicationContext.getSharedPreferences("appfastfly", 0)
-    val initialized = prefs.getBoolean("initialized", false)
-    promise.resolve(!initialized)
+    try {
+      val prefs = reactApplicationContext.getSharedPreferences("appfastfly", 0)
+      val initialized = prefs.getBoolean("initialized", false)
+      promise.resolve(!initialized)
+    } catch (_: Exception) {
+      promise.resolve(false)
+    }
   }
 
   override fun markInitialized() {
-    val prefs = reactApplicationContext.getSharedPreferences("appfastfly", 0)
-    prefs.edit().putBoolean("initialized", true).apply()
+    try {
+      val prefs = reactApplicationContext.getSharedPreferences("appfastfly", 0)
+      prefs.edit().putBoolean("initialized", true).apply()
+    } catch (_: Exception) {
+      // Silently ignore
+    }
   }
 
   override fun getCachedParams(promise: Promise) {
-    val prefs = reactApplicationContext.getSharedPreferences("appfastfly", 0)
-    val json = prefs.getString("latest_params", null)
-    if (json != null) {
-      try {
+    try {
+      val prefs = reactApplicationContext.getSharedPreferences("appfastfly", 0)
+      val json = prefs.getString("latest_params", null)
+      if (json != null) {
         val map = jsonToWritableMap(JSONObject(json))
         promise.resolve(map)
-      } catch (e: Exception) {
+      } else {
         promise.resolve(null)
       }
-    } else {
+    } catch (_: Exception) {
       promise.resolve(null)
     }
   }
 
   override fun setCachedParams(params: ReadableMap) {
-    val prefs = reactApplicationContext.getSharedPreferences("appfastfly", 0)
-    val jsonObj = JSONObject(params.toHashMap())
-    prefs.edit().putString("latest_params", jsonObj.toString()).apply()
+    try {
+      val prefs = reactApplicationContext.getSharedPreferences("appfastfly", 0)
+      val jsonObj = JSONObject(params.toHashMap())
+      prefs.edit().putString("latest_params", jsonObj.toString()).apply()
+    } catch (_: Exception) {
+      // Silently ignore
+    }
   }
+
+  // --- Native networking methods (NEW) ---
+
+  override fun initSession(promise: Promise) {
+    try {
+      val client = apiClient
+      if (client == null) {
+        promise.resolve(null)
+        return
+      }
+
+      val fingerprint = AppfastflyFingerprint(reactApplicationContext)
+      val fpMap = fingerprint.collect()
+      val body = JSONObject(fpMap.toHashMap())
+      body.put("platform", "android")
+
+      // Collect clipboard token
+      try {
+        val clipboard = AppfastflyClipboard(reactApplicationContext)
+        val clipboardToken = clipboard.getToken("aff:")
+        if (clipboardToken != null) {
+          body.put("clipboardToken", clipboardToken)
+          clipboard.clear()
+        }
+      } catch (_: Exception) {
+        // Clipboard access failed — continue without it
+      }
+
+      // Collect install referrer
+      try {
+        val referrer = AppfastflyInstallReferrer(reactApplicationContext)
+        referrer.get(object : Promise {
+          override fun resolve(value: Any?) {
+            if (value is String && value.isNotEmpty()) {
+              body.put("installReferrer", value)
+            }
+            // Now make the API call
+            doResolveCall(client, body, promise)
+          }
+          override fun reject(code: String?, message: String?) { doResolveCall(client, body, promise) }
+          override fun reject(code: String?, throwable: Throwable?) { doResolveCall(client, body, promise) }
+          override fun reject(code: String?, message: String?, throwable: Throwable?) { doResolveCall(client, body, promise) }
+          override fun reject(throwable: Throwable?) { doResolveCall(client, body, promise) }
+          @Deprecated("Deprecated")
+          override fun reject(throwable: Throwable?, userInfo: WritableMap?) { doResolveCall(client, body, promise) }
+          @Deprecated("Deprecated")
+          override fun reject(code: String?, userInfo: WritableMap?) { doResolveCall(client, body, promise) }
+          @Deprecated("Deprecated")
+          override fun reject(code: String?, throwable: Throwable?, userInfo: WritableMap?) { doResolveCall(client, body, promise) }
+          @Deprecated("Deprecated")
+          override fun reject(code: String?, message: String?, userInfo: WritableMap?) { doResolveCall(client, body, promise) }
+          @Deprecated("Deprecated")
+          override fun reject(code: String?, message: String?, throwable: Throwable?, userInfo: WritableMap?) { doResolveCall(client, body, promise) }
+        })
+      } catch (_: Exception) {
+        // Install referrer failed — continue without it
+        doResolveCall(client, body, promise)
+      }
+    } catch (_: Exception) {
+      promise.resolve(null)
+    }
+  }
+
+  private fun doResolveCall(client: AppfastflyApiClient, body: JSONObject, promise: Promise) {
+    client.post("/api/v1/resolve", body, object : AppfastflyApiClient.PostCallback {
+      override fun onResult(result: JSONObject?) {
+        try {
+          if (result != null) {
+            promise.resolve(jsonToWritableMap(result))
+          } else {
+            promise.resolve(null)
+          }
+        } catch (_: Exception) {
+          promise.resolve(null)
+        }
+      }
+    })
+  }
+
+  override fun resolveLink(shortCode: String, promise: Promise) {
+    try {
+      val client = apiClient
+      if (client == null || shortCode.isEmpty()) {
+        promise.resolve(null)
+        return
+      }
+
+      val body = JSONObject()
+      body.put("shortCode", shortCode)
+      body.put("platform", "android")
+
+      client.post("/api/v1/resolve", body, object : AppfastflyApiClient.PostCallback {
+        override fun onResult(result: JSONObject?) {
+          try {
+            if (result != null) {
+              promise.resolve(jsonToWritableMap(result))
+            } else {
+              promise.resolve(null)
+            }
+          } catch (_: Exception) {
+            promise.resolve(null)
+          }
+        }
+      })
+    } catch (_: Exception) {
+      promise.resolve(null)
+    }
+  }
+
+  override fun setUserIdentity(userId: String, promise: Promise) {
+    try {
+      val client = apiClient
+      if (client == null || userId.isEmpty()) {
+        promise.resolve(null)
+        return
+      }
+
+      val fingerprint = AppfastflyFingerprint(reactApplicationContext)
+      val fpMap = fingerprint.collect()
+      val deviceId = fpMap.toHashMap()["deviceId"]?.toString() ?: ""
+
+      val body = JSONObject()
+      body.put("deviceId", deviceId)
+      body.put("platform", "android")
+      body.put("userId", userId)
+
+      client.post("/api/v1/identity", body, object : AppfastflyApiClient.PostCallback {
+        override fun onResult(result: JSONObject?) {
+          promise.resolve(null)
+        }
+      })
+    } catch (_: Exception) {
+      promise.resolve(null)
+    }
+  }
+
+  override fun clearUserIdentity(promise: Promise) {
+    try {
+      val client = apiClient
+      if (client == null) {
+        promise.resolve(null)
+        return
+      }
+
+      val fingerprint = AppfastflyFingerprint(reactApplicationContext)
+      val fpMap = fingerprint.collect()
+      val deviceId = fpMap.toHashMap()["deviceId"]?.toString() ?: ""
+
+      val body = JSONObject()
+      body.put("deviceId", deviceId)
+      body.put("platform", "android")
+
+      client.delete("/api/v1/identity", body, object : AppfastflyApiClient.DeleteCallback {
+        override fun onResult(error: Exception?) {
+          promise.resolve(null)
+        }
+      })
+    } catch (_: Exception) {
+      promise.resolve(null)
+    }
+  }
+
+  // --- Events ---
 
   override fun addListener(eventName: String) {
     hasListeners = true
@@ -175,14 +383,20 @@ class AppfastflyDeepLinkModule(reactContext: ReactApplicationContext) :
   }
 
   private fun sendEvent(eventName: String, params: WritableMap) {
-    if (hasListeners) {
-      reactApplicationContext
-        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-        .emit(eventName, params)
-    } else {
-      cachedEvent = params
+    try {
+      if (hasListeners) {
+        reactApplicationContext
+          .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+          .emit(eventName, params)
+      } else {
+        cachedEvent = params
+      }
+    } catch (_: Exception) {
+      // Silently ignore if JS module not available
     }
   }
+
+  // --- Helpers ---
 
   private fun getMetaData(key: String): String? {
     return try {
@@ -191,24 +405,34 @@ class AppfastflyDeepLinkModule(reactContext: ReactApplicationContext) :
         PackageManager.GET_META_DATA
       )
       ai.metaData?.getString(key)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
       null
     }
   }
 
   private fun jsonToWritableMap(json: JSONObject): WritableMap {
     val map = Arguments.createMap()
-    val keys = json.keys()
-    while (keys.hasNext()) {
-      val key = keys.next()
-      when (val value = json.get(key)) {
-        is String -> map.putString(key, value)
-        is Int -> map.putInt(key, value)
-        is Double -> map.putDouble(key, value)
-        is Boolean -> map.putBoolean(key, value)
-        is JSONObject -> map.putMap(key, jsonToWritableMap(value))
-        else -> map.putString(key, value.toString())
+    try {
+      val keys = json.keys()
+      while (keys.hasNext()) {
+        val key = keys.next()
+        try {
+          when (val value = json.get(key)) {
+            is String -> map.putString(key, value)
+            is Int -> map.putInt(key, value)
+            is Long -> map.putDouble(key, value.toDouble())
+            is Double -> map.putDouble(key, value)
+            is Boolean -> map.putBoolean(key, value)
+            is JSONObject -> map.putMap(key, jsonToWritableMap(value))
+            JSONObject.NULL -> map.putNull(key)
+            else -> map.putString(key, value.toString())
+          }
+        } catch (_: Exception) {
+          // Skip this key on error
+        }
       }
+    } catch (_: Exception) {
+      // Return partial map on error
     }
     return map
   }
