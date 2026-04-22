@@ -5,6 +5,7 @@
 
 #import "AppfastflyClipboard.h"
 #import "AppfastflyFingerprint.h"
+#import "AppfastflyApiClient.h"
 
 // Static reference for forwarding events from AppDelegate
 static AppfastflyDeepLinkModule *_sharedInstance = nil;
@@ -18,6 +19,7 @@ static NSString *_pendingURL = nil;
   NSDictionary *_cachedParams;
   NSString *_serviceUrl;
   NSString *_apiKey;
+  AppfastflyApiClient *_apiClient;
 }
 
 RCT_EXPORT_MODULE(AppfastflyDeepLink)
@@ -30,9 +32,12 @@ RCT_EXPORT_MODULE(AppfastflyDeepLink)
     // Read config from Info.plist
     NSDictionary *info = [[NSBundle mainBundle] infoDictionary];
     _serviceUrl = info[@"AppfastflyServiceUrl"] ?: @"https://api.appfastfly.io.vn";
-    _apiKey = info[@"AppfastflyApiKey"];
+    _apiKey = info[@"AppfastflyApiKey"] ?: @"";
 
-    if (!_apiKey) {
+    // Initialize native HTTP client
+    _apiClient = [[AppfastflyApiClient alloc] initWithServiceUrl:_serviceUrl apiKey:_apiKey];
+
+    if (_apiKey.length == 0) {
       RCTLogWarn(@"[Appfastfly] Missing AppfastflyApiKey in Info.plist");
     }
 
@@ -79,6 +84,15 @@ RCT_EXPORT_MODULE(AppfastflyDeepLink)
   }
 }
 
+/// Safely convert NSDictionary to a format React Native can consume.
+/// Returns empty dict on any conversion issue — never nil, never crashes.
+- (NSDictionary *)safeDict:(NSDictionary *)dict {
+  if (!dict || ![dict isKindOfClass:[NSDictionary class]]) {
+    return @{};
+  }
+  return dict;
+}
+
 #pragma mark - Events
 
 - (NSArray<NSString *> *)supportedEvents {
@@ -98,17 +112,21 @@ RCT_EXPORT_MODULE(AppfastflyDeepLink)
   _hasListeners = NO;
 }
 
-#pragma mark - Exported methods
+#pragma mark - Config & Fingerprint (existing)
 
 RCT_EXPORT_METHOD(getConfig:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 {
-  NSDictionary *info = [[NSBundle mainBundle] infoDictionary];
-  NSDictionary *config = @{
-    @"serviceUrl": info[@"AppfastflyServiceUrl"] ?: @"https://api.appfastfly.io.vn",
-    @"apiKey": info[@"AppfastflyApiKey"] ?: @"",
-  };
-  resolve(config);
+  @try {
+    NSDictionary *info = [[NSBundle mainBundle] infoDictionary];
+    NSDictionary *config = @{
+      @"serviceUrl": info[@"AppfastflyServiceUrl"] ?: @"https://api.appfastfly.io.vn",
+      @"apiKey": info[@"AppfastflyApiKey"] ?: @"",
+    };
+    resolve(config);
+  } @catch (NSException *exception) {
+    resolve(@{@"serviceUrl": @"", @"apiKey": @""});
+  }
 }
 
 RCT_EXPORT_METHOD(getDeviceFingerprint:(RCTPromiseResolveBlock)resolve
@@ -117,9 +135,9 @@ RCT_EXPORT_METHOD(getDeviceFingerprint:(RCTPromiseResolveBlock)resolve
   @try {
     AppfastflyFingerprint *fp = [[AppfastflyFingerprint alloc] init];
     NSDictionary *result = [fp collect];
-    resolve(result);
+    resolve(result ?: @{});
   } @catch (NSException *exception) {
-    reject(@"fingerprint_error", exception.reason, nil);
+    resolve(@{});
   }
 }
 
@@ -132,14 +150,18 @@ RCT_EXPORT_METHOD(getClipboardToken:(NSString *)prefix
     NSString *token = [cb getTokenWithPrefix:prefix];
     resolve(token);
   } @catch (NSException *exception) {
-    reject(@"clipboard_error", exception.reason, nil);
+    resolve(nil);
   }
 }
 
 RCT_EXPORT_METHOD(clearClipboard)
 {
-  AppfastflyClipboard *cb = [[AppfastflyClipboard alloc] init];
-  [cb clear];
+  @try {
+    AppfastflyClipboard *cb = [[AppfastflyClipboard alloc] init];
+    [cb clear];
+  } @catch (NSException *exception) {
+    // Silently ignore
+  }
 }
 
 RCT_EXPORT_METHOD(getInstallReferrer:(RCTPromiseResolveBlock)resolve
@@ -149,47 +171,176 @@ RCT_EXPORT_METHOD(getInstallReferrer:(RCTPromiseResolveBlock)resolve
   resolve(nil);
 }
 
+#pragma mark - Launch state (existing)
+
 RCT_EXPORT_METHOD(isFirstLaunch:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 {
-  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-  BOOL hasLaunched = [defaults boolForKey:@"appfastfly_initialized"];
-  resolve(@(!hasLaunched));
+  @try {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    BOOL hasLaunched = [defaults boolForKey:@"appfastfly_initialized"];
+    resolve(@(!hasLaunched));
+  } @catch (NSException *exception) {
+    resolve(@(NO));
+  }
 }
 
 RCT_EXPORT_METHOD(markInitialized)
 {
-  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-  [defaults setBool:YES forKey:@"appfastfly_initialized"];
-  [defaults synchronize];
+  @try {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    [defaults setBool:YES forKey:@"appfastfly_initialized"];
+    [defaults synchronize];
+  } @catch (NSException *exception) {
+    // Silently ignore
+  }
 }
+
+#pragma mark - Cache (existing)
 
 RCT_EXPORT_METHOD(getCachedParams:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 {
-  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-  NSData *data = [defaults dataForKey:@"appfastfly_latest_params"];
-  if (data) {
-    NSError *error;
-    NSDictionary *params = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
-    if (!error && params) {
-      resolve(params);
-      return;
+  @try {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    NSData *data = [defaults dataForKey:@"appfastfly_latest_params"];
+    if (data) {
+      NSError *error;
+      NSDictionary *params = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+      if (!error && params) {
+        resolve(params);
+        return;
+      }
     }
+    resolve(nil);
+  } @catch (NSException *exception) {
+    resolve(nil);
   }
-  resolve(nil);
 }
 
 RCT_EXPORT_METHOD(setCachedParams:(NSDictionary *)params)
 {
-  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-  NSError *error;
-  NSData *data = [NSJSONSerialization dataWithJSONObject:params options:0 error:&error];
-  if (!error) {
-    [defaults setObject:data forKey:@"appfastfly_latest_params"];
-    [defaults synchronize];
+  @try {
+    if (!params || ![params isKindOfClass:[NSDictionary class]]) return;
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    NSError *error;
+    NSData *data = [NSJSONSerialization dataWithJSONObject:params options:0 error:&error];
+    if (!error) {
+      [defaults setObject:data forKey:@"appfastfly_latest_params"];
+      [defaults synchronize];
+    }
+  } @catch (NSException *exception) {
+    // Silently ignore
   }
 }
+
+#pragma mark - Native networking (NEW)
+
+RCT_EXPORT_METHOD(initSession:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+{
+  @try {
+    AppfastflyFingerprint *fp = [[AppfastflyFingerprint alloc] init];
+    NSDictionary *fingerprint = [fp collect];
+    if (!fingerprint) {
+      resolve(nil);
+      return;
+    }
+
+    // Collect clipboard token
+    NSString *clipboardToken = nil;
+    @try {
+      AppfastflyClipboard *cb = [[AppfastflyClipboard alloc] init];
+      clipboardToken = [cb getTokenWithPrefix:@"aff:"];
+      if (clipboardToken) [cb clear];
+    } @catch (NSException *exception) {
+      // Clipboard access failed — continue without it
+    }
+
+    // Build request body
+    NSMutableDictionary *body = [fingerprint mutableCopy];
+    body[@"platform"] = @"ios";
+    if (clipboardToken) {
+      body[@"clipboardToken"] = clipboardToken;
+    }
+
+    [_apiClient post:@"/api/v1/resolve" body:body completion:^(NSDictionary * _Nullable result) {
+      resolve(result);
+    }];
+  } @catch (NSException *exception) {
+    resolve(nil);
+  }
+}
+
+RCT_EXPORT_METHOD(resolveLink:(NSString *)shortCode
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+{
+  @try {
+    if (!shortCode || shortCode.length == 0) {
+      resolve(nil);
+      return;
+    }
+
+    NSDictionary *body = @{@"shortCode": shortCode, @"platform": @"ios"};
+    [_apiClient post:@"/api/v1/resolve" body:body completion:^(NSDictionary * _Nullable result) {
+      resolve(result);
+    }];
+  } @catch (NSException *exception) {
+    resolve(nil);
+  }
+}
+
+RCT_EXPORT_METHOD(setUserIdentity:(NSString *)userId
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+{
+  @try {
+    if (!userId || userId.length == 0) {
+      resolve(nil);
+      return;
+    }
+
+    AppfastflyFingerprint *fp = [[AppfastflyFingerprint alloc] init];
+    NSDictionary *fingerprint = [fp collect];
+    NSString *deviceId = fingerprint[@"deviceId"] ?: @"";
+
+    NSDictionary *body = @{
+      @"deviceId": deviceId,
+      @"platform": @"ios",
+      @"userId": userId,
+    };
+
+    [_apiClient post:@"/api/v1/identity" body:body completion:^(NSDictionary * _Nullable result) {
+      resolve(nil);
+    }];
+  } @catch (NSException *exception) {
+    resolve(nil);
+  }
+}
+
+RCT_EXPORT_METHOD(clearUserIdentity:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+{
+  @try {
+    AppfastflyFingerprint *fp = [[AppfastflyFingerprint alloc] init];
+    NSDictionary *fingerprint = [fp collect];
+    NSString *deviceId = fingerprint[@"deviceId"] ?: @"";
+
+    NSDictionary *body = @{
+      @"deviceId": deviceId,
+      @"platform": @"ios",
+    };
+
+    [_apiClient deleteRequest:@"/api/v1/identity" body:body completion:^(NSError * _Nullable error) {
+      resolve(nil);
+    }];
+  } @catch (NSException *exception) {
+    resolve(nil);
+  }
+}
+
+#pragma mark - TurboModule
 
 + (BOOL)requiresMainQueueSetup {
   return NO;
